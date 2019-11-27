@@ -1,0 +1,49 @@
+func editProductCall(company_id: String, name: String, category_id: String, subcategory_id: String, price: String, delivery_time: String, code: String, description: String, user_id: String, image: [UIImage], product_id: String, completionHandler: @escaping (Bool, String) -> Void){
+        let param: Parameters = [
+            "company_id": company_id,
+            "name": name,
+            "category_id": category_id,
+            "subcategory_id": subcategory_id,
+            "price": price,
+            "delivery_time": delivery_time,
+            "code": code,
+            "description": description,
+            "user_id": user_id,
+            //"image[]": image,
+            "product_id": product_id
+        ]
+        
+        AF.upload(multipartFormData: { (multioartFormData) in
+            for i in 0..<image.count{
+                let img = image[i]
+                let imgData: Data = img.pngData()!
+                multioartFormData.append(imgData, withName: "image[]", fileName: "image\(i).png", mimeType: "image/png")
+            }
+            
+            for (key, value) in param {
+                multioartFormData.append((value as AnyObject).data(using: String.Encoding.utf8.rawValue)! , withName: key)
+            }
+        },to: Your_Api,method: .post, interceptor: nil).responseJSON { (responce) in
+            switch responce.result{
+            case .success(let upload):
+                print(upload)
+//                if let data = upload, let utf8Text = String(data: data, encoding: .utf8) {
+//                    print("Data: \(utf8Text)")
+//                }
+                if let result = upload as? NSDictionary{
+                    if result["msg"] as? String == "success", let data = result["data"] as? NSDictionary, let msg = data["message"] as? String{
+                        if data["success"] as? Bool == true {
+                            completionHandler(true,msg)
+                        }else{
+                            completionHandler(false,msg)
+                        }
+                    }else{
+                        completionHandler(false,"ERROR")
+                    }
+                }
+            case .failure(let error):
+                print(error.localizedDescription)
+                completionHandler(false,"ERROR")
+            }
+        }
+     }
